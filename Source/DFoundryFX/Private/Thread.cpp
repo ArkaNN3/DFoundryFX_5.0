@@ -77,7 +77,7 @@ void FDFX_Thread::OnGameModeInitialized(AGameModeBase* aGameMode)
   [this](const TSharedRef<SWindow>& Window) {
     FDFX_Thread::OnViewportClose();
   });
-  hOnPipelineStateLogged = FPipelineFileCacheManager::OnPipelineStateLogged().AddRaw(this, &FDFX_Thread::OnPipelineStateLogged);
+  //hOnPipelineStateLogged = FPipelineFileCacheManager::OnPipelineStateLogged().AddRaw(this, &FDFX_Thread::OnPipelineStateLogged);
   ShaderLogTime = FApp::GetCurrentTime();
 }
 
@@ -158,7 +158,7 @@ void FDFX_Thread::OnPipelineStateLogged(FPipelineCacheFileFormatPSO& PipelineCac
   FString AssetName = "";
   double m_ShaderLogDiff = FApp::GetCurrentTime() - ShaderLogTime;
   uint32 m_hash = PipelineCacheFileFormatPSO.Hash;
-  uint32 m_type = (int)PipelineCacheFileFormatPSO.Type;
+  uint32 m_type = static_cast<int>(PipelineCacheFileFormatPSO.Type);
 
   switch(m_type) {
     case 0:  //Compute
@@ -192,16 +192,16 @@ ImGuiIO& FDFX_Thread::GetImGuiIO() const
 
 bool FDFX_Thread::ImGui_ImplUE_Init()
 {
-  ImGuiIO& io = GetImGuiIO();
-  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-  io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
+  ImGuiIO& IO = GetImGuiIO();
+  IO.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  IO.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+  IO.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+  IO.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
   ImGui::StyleColorsDark();
 
-  io.SetClipboardTextFn = ImGui_ImplUE_SetClipboardText;
-  io.GetClipboardTextFn = ImGui_ImplUE_GetClipboardText;
+  IO.SetClipboardTextFn = ImGui_ImplUE_SetClipboardText;
+  IO.GetClipboardTextFn = ImGui_ImplUE_GetClipboardText;
 
   return true;
 }
@@ -210,41 +210,41 @@ bool FDFX_Thread::ImGui_ImplUE_Init()
 bool FDFX_Thread::ImGui_ImplUE_CreateDeviceObjects()
 {
   // Build texture atlas
-  ImGuiIO& io = GetImGuiIO();
-  unsigned char* pixels;
-  int width, height;
-  io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+  const ImGuiIO& IO = GetImGuiIO();
+  unsigned char* Pixels;
+  int Width, Height;
+  IO.Fonts->GetTexDataAsRGBA32(&Pixels, &Width, &Height);
 
   if (!FDFX_Module::FontTexture_Updated) {
     AsyncTask(ENamedThreads::GameThread, [=](){
-      UE_LOG(LogDFoundryFX, Log, TEXT("ImGui FontTexture : TexData %d x %d."), width, height);
+      UE_LOG(LogDFoundryFX, Log, TEXT("ImGui FontTexture : TexData %d x %d."), Width, Height);
   
       FDFX_Module::FontTexture->UnlinkStreaming();
-      FTexture2DMipMap& mip = FDFX_Module::FontTexture->GetPlatformData()->Mips[0];
-      void* data = mip.BulkData.Lock(LOCK_READ_WRITE);
-      int size = width * height * 4; // Fix lnt-arithmetic-overflow warning
-      FMemory::Memcpy(data, pixels, size);
-      mip.BulkData.Unlock();
+      FTexture2DMipMap& Mip = FDFX_Module::FontTexture->GetPlatformData()->Mips[0];
+      void* Data = Mip.BulkData.Lock(LOCK_READ_WRITE);
+      const int Size = Width * Height * 4; // Fix lnt-arithmetic-overflow warning
+      FMemory::Memcpy(Data, Pixels, Size);
+      Mip.BulkData.Unlock();
 
       FDFX_Module::FontTexture->UpdateResource();
       FDFX_Module::MaterialInstance->SetTextureParameterValue(FName("param"), FDFX_Module::FontTexture);
-      FDFX_Module::MaterialInstance->CacheShaders(EMaterialShaderPrecompileMode::Synchronous);
+      //FDFX_Module::MaterialInstance->Shader(EMaterialShaderPrecompileMode::Synchronous);
       //FDFX_Module::MaterialInstance->AllMaterialsCacheResourceShadersForRendering(); DX12 ValidateBoundUniformBuffer Crash
       FDFX_Module::FontTexture_Updated = true;
     });
   }
 
   // Store our identifier
-  io.Fonts->TexID = (void*)FDFX_Module::FontTexture;
+  IO.Fonts->TexID = static_cast<void*>(FDFX_Module::FontTexture);
 
-  UE_LOG(LogDFoundryFX, Log, TEXT("ImGui FontTexture loaded %d x %d.."), width, height);
+  UE_LOG(LogDFoundryFX, Log, TEXT("ImGui FontTexture loaded %d x %d.."), Width, Height);
 
   return true;
 }
 
 void FDFX_Thread::ImGui_ImplUE_Render()
 {
-  const uint64 m_ImGuiBeginTime = FPlatformTime::Cycles64();
+  const uint64 M_ImGuiBeginTime = FPlatformTime::Cycles64();
   { 
     SCOPE_CYCLE_COUNTER(STAT_ThreadProcEvents);
     ImGui_ImplUE_ProcessEvent();
@@ -262,8 +262,8 @@ void FDFX_Thread::ImGui_ImplUE_Render()
     SCOPE_CYCLE_COUNTER(STAT_ThreadDraw);
     ImGui_ImplUE_RenderDrawLists();
   }
-  const uint64 m_ImGuiEndTime = FPlatformTime::Cycles64();
-  m_ImGuiDiffTime = (m_ImGuiEndTime - m_ImGuiBeginTime);
+  const uint64 M_ImGuiEndTime = FPlatformTime::Cycles64();
+  m_ImGuiDiffTime = M_ImGuiEndTime - M_ImGuiBeginTime;
 }
 
 void FDFX_Thread::ImGui_ImplUE_ProcessEvent()
@@ -271,55 +271,57 @@ void FDFX_Thread::ImGui_ImplUE_ProcessEvent()
   if (!ControllerInput())
     return;
 
-  ImGuiIO& io = GetImGuiIO();
+  ImGuiIO& IO = GetImGuiIO();
 
-  io.KeyShift = PlayerController->IsInputKeyDown(EKeys::LeftShift) || PlayerController->IsInputKeyDown(EKeys::RightShift);
-  io.KeyCtrl = PlayerController->IsInputKeyDown(EKeys::LeftControl) || PlayerController->IsInputKeyDown(EKeys::RightControl);
-  io.KeyAlt = PlayerController->IsInputKeyDown(EKeys::LeftAlt) || PlayerController->IsInputKeyDown(EKeys::RightAlt);
-  io.KeySuper = false;
+  IO.KeyShift = PlayerController->IsInputKeyDown(EKeys::LeftShift) || PlayerController->IsInputKeyDown(EKeys::RightShift);
+  IO.KeyCtrl = PlayerController->IsInputKeyDown(EKeys::LeftControl) || PlayerController->IsInputKeyDown(EKeys::RightControl);
+  IO.KeyAlt = PlayerController->IsInputKeyDown(EKeys::LeftAlt) || PlayerController->IsInputKeyDown(EKeys::RightAlt);
+  IO.KeySuper = false;
 
-  TArray<FKey> keys;
-  EKeys::GetAllKeys(keys);
-  for (int i = 0; i < keys.Num(); i++)
+  TArray<FKey> Keys;
+  EKeys::GetAllKeys(Keys);
+  for (int i = 0; i < Keys.Num(); i++)
   {
-    const ImGuiKey m_ImGuiKey = FKeyToImGuiKey(keys[i].GetFName());
-    if (PlayerController->IsInputKeyDown(keys[i])) {
+    const ImGuiKey m_ImGuiKey = FKeyToImGuiKey(Keys[i].GetFName());
+    if (PlayerController->IsInputKeyDown(Keys[i])) {
       if (m_ImGuiKey != ImGuiKey_None) {
-        io.AddKeyEvent(m_ImGuiKey, true);
+        IO.AddKeyEvent(m_ImGuiKey, true);
       }
     } else {
-      io.AddKeyEvent(m_ImGuiKey, false);
+      IO.AddKeyEvent(m_ImGuiKey, false);
     }
 
-    if (keys[i].IsTouch()) {
+    if (Keys[i].IsTouch()) {
       float TouchY, TouchX;
       bool TouchPressed;
       PlayerController->GetInputTouchState(ETouchIndex::Touch1, TouchY, TouchX, TouchPressed);
-      io.AddMousePosEvent(TouchX, TouchY);
-      io.AddMouseButtonEvent(0, TouchPressed);
+      IO.AddMousePosEvent(TouchX, TouchY);
+      IO.AddMouseButtonEvent(0, TouchPressed);
       continue;
     }
 
-    bool keyboard = !keys[i].IsMouseButton() &&
-      !keys[i].IsModifierKey() &&
-      !keys[i].IsGamepadKey() &&
-      !keys[i].IsAxis1D() &&
-      !keys[i].IsAxis2D();
-    if (!keyboard)
+    const bool bKeyboard = !Keys[i].IsMouseButton() &&
+      !Keys[i].IsModifierKey() &&
+      !Keys[i].IsGamepadKey() &&
+      !Keys[i].IsAxis1D() &&
+      !Keys[i].IsAxis2D();
+    if (!bKeyboard)
+    {
       continue;
+    }
 
-    if (PlayerController->WasInputKeyJustPressed(keys[i]))
+    if (PlayerController->WasInputKeyJustPressed(Keys[i]))
     {
       const uint32* key_code = NULL;
       const uint32* char_code = NULL;
-      FInputKeyManager::Get().GetCodesFromKey(keys[i], key_code, char_code);
+      FInputKeyManager::Get().GetCodesFromKey(Keys[i], key_code, char_code);
 
       if (char_code)
       {
         int c = tolower((int)*char_code);
         if (PlayerController->IsInputKeyDown(EKeys::LeftShift) || PlayerController->IsInputKeyDown(EKeys::RightShift))
           c = toupper(c);
-        io.AddInputCharacter((ImWchar)c);
+        IO.AddInputCharacter((ImWchar)c);
       }
     }
   }
@@ -330,15 +332,18 @@ void FDFX_Thread::ImGui_ImplUE_ProcessEvent()
 
 void FDFX_Thread::ImGui_ImplUE_NewFrame()
 {
-  ImGuiIO& io = GetImGuiIO();
+  ImGuiIO& IO = GetImGuiIO();
   
-  io.DisplaySize = ImVec2((float)ViewportSize.X, (float)ViewportSize.Y);
-  io.DisplayFramebufferScale = ImVec2(1, 1);
+  IO.DisplaySize = ImVec2(static_cast<float>(ViewportSize.X), static_cast<float>(ViewportSize.Y));
+  IO.DisplayFramebufferScale = ImVec2(1, 1);
 
-  PlayerController->GetMousePosition(io.MousePos.x, io.MousePos.y);
-  io.MouseDown[0] = PlayerController->IsInputKeyDown(EKeys::LeftMouseButton);
-  io.MouseDown[1] = PlayerController->IsInputKeyDown(EKeys::RightMouseButton);
-  io.MouseDown[2] = PlayerController->IsInputKeyDown(EKeys::MiddleMouseButton);
+  if (PlayerController)
+  {
+    PlayerController->GetMousePosition(IO.MousePos.x, IO.MousePos.y);
+    IO.MouseDown[0] = PlayerController->IsInputKeyDown(EKeys::LeftMouseButton);
+    IO.MouseDown[1] = PlayerController->IsInputKeyDown(EKeys::RightMouseButton);
+    IO.MouseDown[2] = PlayerController->IsInputKeyDown(EKeys::MiddleMouseButton);
+  }
 
   //TODO : Add MouseWheelAxis
   //io.AddMouseWheelEvent(0.f, PlayerController->IsInputKeyDown(EKeys::MouseWheelAxis));
@@ -349,36 +354,36 @@ void FDFX_Thread::ImGui_ImplUE_NewFrame()
 void FDFX_Thread::ImGui_ImplUE_RenderDrawLists()
 {
   // Avoid rendering when minimized
-  ImGuiIO& io = GetImGuiIO();
-  int fb_width = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
-  int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
-  if ((fb_width == 0) || (fb_height == 0))
+  ImGuiIO& IO = GetImGuiIO();
+  int Fb_Width = static_cast<int>(IO.DisplaySize.x * IO.DisplayFramebufferScale.x);
+  int Fb_Height = static_cast<int>(IO.DisplaySize.y * IO.DisplayFramebufferScale.y);
+  if ((Fb_Width == 0) || (Fb_Height == 0))
     return;
 
   ImDrawData* draw_data = ImGui::GetDrawData();
-  draw_data->ScaleClipRects(io.DisplayFramebufferScale);
+  draw_data->ScaleClipRects(IO.DisplayFramebufferScale);
 
   // Render command lists
   for (int n = 0; n < draw_data->CmdListsCount; n++)
   {
-    const ImDrawList* cmd_list = draw_data->CmdLists[n];
-    const ImDrawVert* vtx_buffer = cmd_list->VtxBuffer.Data;
-    const ImDrawIdx* idx_buffer = cmd_list->IdxBuffer.Data;
+    const ImDrawList* Cmd_List = draw_data->CmdLists[n];
+    const ImDrawVert* vtx_buffer = Cmd_List->VtxBuffer.Data;
+    const ImDrawIdx* Idx_Buffer = Cmd_List->IdxBuffer.Data;
 
-    for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
+    for (int cmd_i = 0; cmd_i < Cmd_List->CmdBuffer.Size; cmd_i++)
     {
-      const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
+      const ImDrawCmd* pcmd = &Cmd_List->CmdBuffer[cmd_i];
       TArray<FCanvasUVTri> triangles;
       for (unsigned int elem = 0; elem < pcmd->ElemCount / 3; elem++)
       {
         ImDrawVert v[] =
         {
-          cmd_list->VtxBuffer[idx_buffer[elem * 3]],
-          cmd_list->VtxBuffer[idx_buffer[elem * 3 + 1]],
-          cmd_list->VtxBuffer[idx_buffer[elem * 3 + 2]]
+          Cmd_List->VtxBuffer[Idx_Buffer[elem * 3]],
+          Cmd_List->VtxBuffer[Idx_Buffer[elem * 3 + 1]],
+          Cmd_List->VtxBuffer[Idx_Buffer[elem * 3 + 2]]
         };
 
-        ImVec4 col[] =
+        ImVec4 Col[] =
         {
           ImGui::ColorConvertU32ToFloat4(v[0].col),
           ImGui::ColorConvertU32ToFloat4(v[1].col),
@@ -444,15 +449,15 @@ void FDFX_Thread::ImGui_ImplUE_RenderDrawLists()
         triangle.V0_UV = FVector2D(v[0].uv.x, v[0].uv.y);
         triangle.V1_UV = FVector2D(v[1].uv.x, v[1].uv.y);
         triangle.V2_UV = FVector2D(v[2].uv.x, v[2].uv.y);
-        triangle.V0_Color = FLinearColor(col[0].x, col[0].y, col[0].z, col[0].w);
-        triangle.V1_Color = FLinearColor(col[1].x, col[1].y, col[1].z, col[1].w);
-        triangle.V2_Color = FLinearColor(col[2].x, col[2].y, col[2].z, col[2].w);
+        triangle.V0_Color = FLinearColor(Col[0].x, Col[0].y, Col[0].z, Col[0].w);
+        triangle.V1_Color = FLinearColor(Col[1].x, Col[1].y, Col[1].z, Col[1].w);
+        triangle.V2_Color = FLinearColor(Col[2].x, Col[2].y, Col[2].z, Col[2].w);
         triangles.Push(triangle);
       }
 
       // Draw triangles
       uCanvas->K2_DrawMaterialTriangle(FDFX_Module::MaterialInstance, triangles);
-      idx_buffer += pcmd->ElemCount;
+      Idx_Buffer += pcmd->ElemCount;
     }
   }
 }
@@ -485,34 +490,38 @@ bool FDFX_Thread::ControllerInput()
 {
   static bool bControllerDisabled = false;
   static bool bMainWindowStillOpen = false;
-  APawn* aPawn = PlayerController->GetPawn();
+  if (APawn* aPawn = PlayerController->GetPawn(); aPawn)
+  {
+    
 
-  if (!FDFX_StatData::bMainWindowOpen && !bMainWindowStillOpen)
-    return false;
+    if (!FDFX_StatData::bMainWindowOpen && !bMainWindowStillOpen)
+      return false;
 
-  if (!FDFX_StatData::bMainWindowOpen && bControllerDisabled) {
-    aPawn->EnableInput(PlayerController);
-    bControllerDisabled = false;
-    bMainWindowStillOpen = false;
-    return true;
-  }
+    if (!FDFX_StatData::bMainWindowOpen && bControllerDisabled) {
+      aPawn->EnableInput(PlayerController);
+      bControllerDisabled = false;
+      bMainWindowStillOpen = false;
+      return true;
+    }
 
-  if (FDFX_StatData::bMainWindowOpen && !FDFX_StatData::bDisableGameControls) {
-    if (aPawn) {
+    if (FDFX_StatData::bMainWindowOpen && !FDFX_StatData::bDisableGameControls) {
+      if (aPawn) {
         aPawn->EnableInput(PlayerController);
+      }
+      bControllerDisabled = false;
+      return true;
     }
-    bControllerDisabled = false;
+
+    if (FDFX_StatData::bDisableGameControls) {
+      if (FDFX_StatData::bMainWindowOpen) {
+        aPawn->DisableInput(PlayerController);
+        bMainWindowStillOpen = true;
+        bControllerDisabled = true;
+      }
+    }
     return true;
   }
-
-  if (FDFX_StatData::bDisableGameControls) {
-    if (FDFX_StatData::bMainWindowOpen) {
-      aPawn->DisableInput(PlayerController);
-      bMainWindowStillOpen = true;
-      bControllerDisabled = true;
-    }
-  }
-  return true;
+  return false;
 }
 
 void FDFX_Thread::ExternalWindow(bool IsExiting)
@@ -607,7 +616,7 @@ void FDFX_Thread::RemoveDelegates() {
     hOnGameModeInitialized.Reset();
   }
   if (hOnPipelineStateLogged.IsValid()) {
-    FPipelineFileCacheManager::OnPipelineStateLogged().Remove(hOnPipelineStateLogged);
+    //FPipelineFileCacheManager::OnPipelineStateLogged().Remove(hOnPipelineStateLogged);
     hOnPipelineStateLogged.Reset();
   }
   if (hOnWorldBeginPlay.IsValid()) {

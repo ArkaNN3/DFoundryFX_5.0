@@ -1,20 +1,20 @@
 #pragma once
 
-#include "Engine/Engine.h"
-#include "Engine/GameViewportClient.h"
-#include "UnrealClient.h"
-#include "Misc/App.h"
-#include "GameFramework/PlayerController.h"
-#include "GenericPlatform/GenericPlatformMisc.h"
 #include "RHI.h"
-#include "Stats/Stats2.h"
-#include "Stats/StatsData.h"
 #include "ShaderCodeLibrary.h"
 #include "ShaderPipelineCache.h"
+#include "UnrealClient.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
+#include "GameFramework/PlayerController.h"
+#include "GenericPlatform/GenericPlatformMisc.h"
 #include "HAL/ConsoleManager.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
 #include "ImGui/implot.h"
+#include "Misc/App.h"
+#include "Stats/Stats2.h"
+#include "Stats/StatsData.h"
 
 class DFOUNDRYFX_API FDFX_StatData
 {

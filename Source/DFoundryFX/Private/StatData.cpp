@@ -1,4 +1,8 @@
 #include "StatData.h"
+#include "Module.h"
+#include "Engine/GameViewportClient.h"
+#include "Stats/Stats.h"
+#include "Windows/WindowsPlatformTime.h"
 
 #define LOCTEXT_NAMESPACE "DFX_StatData"
 DECLARE_CYCLE_STAT(TEXT("DFoundryFX_StatLoadDefault"), STAT_StatLoadDefault, STATGROUP_DFoundryFX);
@@ -398,46 +402,73 @@ void FDFX_StatData::LoadFPSPlot()
 
 void FDFX_StatData::MainWindow()
 {
-  APlayerController* aPC = m_Viewport->GetWorld()->GetFirstPlayerController();
-  char WindowTitle[] = "DFoundryFX";
-  ImGui::Begin(WindowTitle, NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+  APlayerController* PC = m_Viewport->GetWorld()->GetFirstPlayerController();
+  constexpr char WindowTitle[] = "Debug menu";
+  ImGui::Begin(WindowTitle, nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
-  if (ImGui::IsWindowCollapsed())  {
+  if (ImGui::IsWindowCollapsed())
+  {
     bMainWindowOpen = false;
-    const int Offset = 64;
+    constexpr int Offset = 64;
     ImGui::SetWindowPos(ImVec2(ViewSize.X - ImGui::CalcTextSize(WindowTitle).x - Offset, 0));
     ImGui::SetWindowSize(ImVec2(ImGui::CalcTextSize(WindowTitle).x + Offset, 0));
 
-    const ImRect titleBarRect = ImGui::GetCurrentWindow()->TitleBarRect();
-    ImGui::PushClipRect(titleBarRect.Min, titleBarRect.Max, false);
+    const ImRect TitleBarRect = ImGui::GetCurrentWindow()->TitleBarRect();
+    ImGui::PushClipRect(TitleBarRect.Min, TitleBarRect.Max, false);
     ImGui::SetCursorPos(ImVec2(ImGui::CalcTextSize(WindowTitle).x + Offset / 2, 0.0f));
-    ImGui::Text(" "); ImGui::SameLine();
+    ImGui::Text(" ");
+    ImGui::SameLine();
     ImGui::Checkbox("##DisplayGraphs", &bShowPlots);
     ImGui::PopClipRect();
 
-    if (ImGui::IsWindowHovered()) {
-      ImGui::GetIO().MouseDrawCursor = true;
+    if (ImGui::IsWindowHovered())
+    {
+      //ImGui::GetIO().MouseDrawCursor = true;
+      //aPC->bShowMouseCursor = false;
     }
-    else {
-      ImGui::GetIO().MouseDrawCursor = false;
+    else
+    {
+      //ImGui::GetIO().MouseDrawCursor = false;
+     // aPC->bShowMouseCursor = true;
     }
-  } else {
+  }
+  else
+  {
     bMainWindowOpen = true;
     ImGui::SetWindowPos(ImVec2(ViewSize.X - (ViewSize.X / 4), 0));
     ImGui::SetWindowSize(ImVec2(ViewSize.X / 4, ViewSize.Y));
     ImGui::BeginTabBar("##MainWindowTabBar");
 
-    if (ImGui::BeginTabItem("Engine"))    Tab_Engine();
-    if (ImGui::BeginTabItem("Shaders"))   Tab_Shaders();
-    if (ImGui::BeginTabItem("STAT"))      Tab_STAT();
-    if (ImGui::BeginTabItem("Settings"))  Tab_Settings();
+    if (ImGui::BeginTabItem("Engine"))
+    {
+      Tab_Engine();
+    }
+    if (ImGui::BeginTabItem("Shaders"))
+    {
+      Tab_Shaders();
+    }
+    if (ImGui::BeginTabItem("STAT"))
+    {
+      Tab_STAT();
+    }
+    if (ImGui::BeginTabItem("Settings"))
+    {
+      Tab_Settings();
+    }
     if (bShowDebugTab)
-      if (ImGui::BeginTabItem("Debug"))   Tab_Debug();
+    {
+      if (ImGui::BeginTabItem("Debug"))
+      {
+        Tab_Debug();
+      }
+    }
 
     ImGui::EndTabBar();
 
-    if (ImGui::IsWindowHovered()) {
-      ImGui::GetIO().MouseDrawCursor = true;
+    if (ImGui::IsWindowHovered())
+    {
+     // ImGui::GetIO().MouseDrawCursor = true;
+     // aPC->bShowMouseCursor = false;
     }
   }
 
@@ -646,7 +677,7 @@ void FDFX_StatData::Tab_Engine()
     InfoHelper("MaxParticleResizeWarn", GEngine->MaxParticleResizeWarn);
     InfoHelper("MaxPixelShaderAdditiveComplexityCount", GEngine->MaxPixelShaderAdditiveComplexityCount);
     // InfoHelper("StreamingDistanceFactor", GEngine->StreamingDistanceFactor); // Deprecated in UE5.2
-    InfoHelper("UseSkeletalMeshMinLODPerQualityLevels", GEngine->UseSkeletalMeshMinLODPerQualityLevels);
+    //InfoHelper("UseSkeletalMeshMinLODPerQualityLevels", GEngine->UseSkeletalMeshMinLODPerQualityLevels);
     InfoHelper("UseStaticMeshMinLODPerQualityLevels", GEngine->UseStaticMeshMinLODPerQualityLevels);
 
     ImGui::EndDisabled();
@@ -679,7 +710,7 @@ void FDFX_StatData::Tab_Engine()
     InfoHelper("GRHIRayTracingScratchBufferAlignment", GRHIRayTracingScratchBufferAlignment);
     InfoHelper("GRHIRequiresRenderTargetForPixelShaderUAVs", GRHIRequiresRenderTargetForPixelShaderUAVs);
     InfoHelper("GRHISupportsArrayIndexFromAnyShader", GRHISupportsArrayIndexFromAnyShader);
-    InfoHelper("GRHISupportsAsyncPipelinePrecompile", GRHISupportsAsyncPipelinePrecompile);
+    //InfoHelper("GRHISupportsAsyncPipelinePrecompile", GRHISupportsAsyncPipelinePrecompile);
     InfoHelper("GRHISupportsAsyncTextureCreation", GRHISupportsAsyncTextureCreation);
     InfoHelper("GRHISupportsAtomicUInt64", GRHISupportsAtomicUInt64);
     InfoHelper("GRHISupportsAttachmentVariableRateShading", GRHISupportsAttachmentVariableRateShading);
@@ -703,14 +734,14 @@ void FDFX_StatData::Tab_Engine()
     InfoHelper("GRHISupportsGPUTimestampBubblesRemoval", GRHISupportsGPUTimestampBubblesRemoval); 
     InfoHelper("GRHISupportsHDROutput", GRHISupportsHDROutput);
     InfoHelper("GRHISupportsInlineRayTracing", GRHISupportsInlineRayTracing);
-    InfoHelper("GRHISupportsLargerVariableRateShadingSizes", GRHISupportsLargerVariableRateShadingSizes);
+    //InfoHelper("GRHISupportsLargerVariableRateShadingSizes", GRHISupportsLargerVariableRateShadingSizes);
     InfoHelper("GRHISupportsLateVariableRateShadingUpdate", GRHISupportsLateVariableRateShadingUpdate);
     InfoHelper("GRHISupportsLazyShaderCodeLoading", GRHISupportsLazyShaderCodeLoading);
     InfoHelper("GRHISupportsMapWriteNoOverwrite", GRHISupportsMapWriteNoOverwrite);
     InfoHelper("GRHISupportsMeshShadersTier0", GRHISupportsMeshShadersTier0);
     InfoHelper("GRHISupportsMeshShadersTier1", GRHISupportsMeshShadersTier1);
     InfoHelper("GRHISupportsMSAADepthSampleAccess", GRHISupportsMSAADepthSampleAccess);
-    InfoHelper("GRHISupportsMultithreadedResources", GRHISupportsMultithreadedResources);
+    //InfoHelper("GRHISupportsMultithreadedResources", GRHISupportsMultithreadedResources);
     InfoHelper("GRHISupportsMultithreadedShaderCreation", GRHISupportsMultithreadedShaderCreation);
     InfoHelper("GRHISupportsMultithreading", GRHISupportsMultithreading);
     InfoHelper("GRHISupportsParallelRHIExecute", GRHISupportsParallelRHIExecute);
@@ -720,7 +751,7 @@ void FDFX_StatData::Tab_Engine()
     InfoHelper("GRHISupportsPixelShaderUAVs", GRHISupportsPixelShaderUAVs);
     InfoHelper("GRHISupportsPrimitiveShaders", GRHISupportsPrimitiveShaders);
     InfoHelper("GRHISupportsQuadTopology", GRHISupportsQuadTopology);
-    InfoHelper("GRHISupportsRawViewsForAnyBuffer", GRHISupportsRawViewsForAnyBuffer);
+    //InfoHelper("GRHISupportsRawViewsForAnyBuffer", GRHISupportsRawViewsForAnyBuffer);
     InfoHelper("GRHISupportsRayTracing", GRHISupportsRayTracing);
     InfoHelper("GRHISupportsRayTracingAMDHitToken", GRHISupportsRayTracingAMDHitToken);
     InfoHelper("GRHISupportsRayTracingAsyncBuildAccelerationStructure", GRHISupportsRayTracingAsyncBuildAccelerationStructure);
@@ -733,7 +764,7 @@ void FDFX_StatData::Tab_Engine()
     InfoHelper("GRHISupportsRHIOnTaskThread", GRHISupportsRHIOnTaskThread);
     InfoHelper("GRHISupportsRHIThread", GRHISupportsRHIThread);
     InfoHelper("GRHISupportsRWTextureBuffers", GRHISupportsRWTextureBuffers);
-    InfoHelper("GRHISupportsSeparateDepthStencilCopyAccess", GRHISupportsSeparateDepthStencilCopyAccess);
+    //InfoHelper("GRHISupportsSeparateDepthStencilCopyAccess", GRHISupportsSeparateDepthStencilCopyAccess);
     InfoHelper("GRHISupportsShaderTimestamp", GRHISupportsShaderTimestamp);
     InfoHelper("GRHISupportsStencilRefFromPixelShader", GRHISupportsStencilRefFromPixelShader);
     InfoHelper("GRHISupportsTextureStreaming", GRHISupportsTextureStreaming);
@@ -761,7 +792,7 @@ void FDFX_StatData::Tab_Engine()
     InfoHelper("EngineDir", FGenericPlatformMisc::EngineDir());
     InfoHelper("FullscreenSameAsWindowedFullscreen", FGenericPlatformMisc::FullscreenSameAsWindowedFullscreen());
     InfoHelper("GamePersistentDownloadDir", FGenericPlatformMisc::GamePersistentDownloadDir());
-    InfoHelper("GameTemporaryDownloadDir", FGenericPlatformMisc::GameTemporaryDownloadDir());
+  //  InfoHelper("GameTemporaryDownloadDir", FGenericPlatformMisc::GameTemporaryDownloadDir());
     InfoHelper("GetBatteryLevel", FGenericPlatformMisc::GetBatteryLevel());
     InfoHelper("GetBrightness", FGenericPlatformMisc::GetBrightness());
     InfoHelper("GetCPUBrand", FGenericPlatformMisc::GetCPUBrand());
@@ -789,7 +820,7 @@ void FDFX_StatData::Tab_Engine()
     //InfoHelper("GetMachineId", FGenericPlatformMisc::GetMachineId().ToString());   //DEPRECATED
     InfoHelper("GetMaxPathLength", FGenericPlatformMisc::GetMaxPathLength());
     InfoHelper("GetMaxRefreshRate", FGenericPlatformMisc::GetMaxRefreshRate());
-    InfoHelper("GetMaxSupportedRefreshRate", FGenericPlatformMisc::GetMaxSupportedRefreshRate());
+    InfoHelper("GetMaxSupportedRefreshRate", FGenericPlatformMisc::GetMaxRefreshRate());
     InfoHelper("GetMaxSyncInterval", FGenericPlatformMisc::GetMaxSyncInterval());
     InfoHelper("GetMobilePropagateAlphaSetting", FGenericPlatformMisc::GetMobilePropagateAlphaSetting());
     //InfoHelper("GetNetworkConnectionType", FGenericPlatformMisc::GetNetworkConnectionType());
@@ -822,7 +853,7 @@ void FDFX_StatData::Tab_Engine()
     InfoHelper("IsPGOEnabled", FGenericPlatformMisc::IsPGOEnabled());
     InfoHelper("IsRegisteredForRemoteNotifications", FGenericPlatformMisc::IsRegisteredForRemoteNotifications());
     InfoHelper("IsRemoteSession", FGenericPlatformMisc::IsRemoteSession());
-    InfoHelper("IsRunningInCloud", FGenericPlatformMisc::IsRunningInCloud());
+   // InfoHelper("IsRunningInCloud", FGenericPlatformMisc::IsRunningInCloud());
     InfoHelper("IsRunningOnBattery", FGenericPlatformMisc::IsRunningOnBattery());
     InfoHelper("LaunchDir", FGenericPlatformMisc::LaunchDir());
     InfoHelper("NeedsNonoptionalCPUFeaturesCheck", FGenericPlatformMisc::NeedsNonoptionalCPUFeaturesCheck());
@@ -850,15 +881,15 @@ void FDFX_StatData::Tab_Engine()
 
 void FDFX_StatData::Tab_Shaders()
 {
-  static ImGuiTableFlags flags = ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | 
+  static ImGuiTableFlags Flags = ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | 
     ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | 
     ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
     ImGuiTableFlags_SizingStretchProp;
-  ImVec2 outer_size = ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 15);
+  const ImVec2 outer_size = ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 15);
   float inner_width = ImGui::CalcTextSize("X").x * 80;
   int ShaderTotal = 0;
   double TimeTotal = 0;
-  if (ImGui::BeginTable("ShaderCompilerLog", 4, flags, outer_size, inner_width))
+  if (ImGui::BeginTable("ShaderCompilerLog", 4, Flags, outer_size, inner_width))
   {
     ImGui::TableSetupScrollFreeze(0, 1);
     ImGui::TableSetupColumn("Type");
@@ -923,9 +954,9 @@ void FDFX_StatData::Tab_Shaders()
 
   if (ImGui::CollapsingHeader("PipelineFileCacheManager Context")) {
     ImGui::BeginDisabled();
-    InfoHelper("IsPipelineFileCacheEnabled", FPipelineFileCacheManager::IsPipelineFileCacheEnabled());
-    InfoHelper("NumPSOsLogged", FPipelineFileCacheManager::NumPSOsLogged());
-    InfoHelper("GetGameUsageMask", FPipelineFileCacheManager::GetGameUsageMask());
+    //InfoHelper("IsPipelineFileCacheEnabled", FPipelineFileCacheManager::IsPipelineFileCacheEnabled());
+    //InfoHelper("NumPSOsLogged", FPipelineFileCacheManager::NumPSOsLogged());
+    //InfoHelper("GetGameUsageMask", FPipelineFileCacheManager::GetGameUsageMask());
     ImGui::EndDisabled();
   }
 
@@ -1327,9 +1358,9 @@ void FDFX_StatData::LoadDefaultValues(FVector2D InViewportSize)
 
   pwFPS.bShowPlot = true;
   pwFPS.History = 3.0f;
-  pwFPS.Range = ImVec2(20, 80);
+  pwFPS.Range = ImVec2(20, 140);
   pwFPS.Position = ImVec2(0, (ViewSize.Y / 3) * 2);
-  pwFPS.Size = ImVec2(ViewSize.X, ViewSize.Y / 3);
+  pwFPS.Size = ImVec2(ViewSize.X / 4, ViewSize.Y / 3);
   pwFPS.BackgroundColor = ImVec4(0.21, 0.22, 0.23, 0.05);
   pwFPS.PlotBackgroundColor = ImVec4(0.32, 0.50, 0.77, 0.05);
   pwFPS.PlotStyleFillAlpha = 0.5;

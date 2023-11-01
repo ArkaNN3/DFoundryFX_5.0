@@ -127,6 +127,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #include "implot_internal.h"
 
 #include <stdlib.h>
+#include <ctime>
 
 // Support for pre-1.82 versions. Users on 1.82+ can use 0 (default) flags to mean "all corners" but in order to support older versions we are more explicit.
 #if (IMGUI_VERSION_NUM < 18102) && !defined(ImDrawFlags_RoundCornersAll)
@@ -880,6 +881,8 @@ ImPlotTime MkGmtTime(struct tm *ptm) {
     ImPlotTime t;
 #ifdef _WIN32
     t.S = _mkgmtime(ptm);
+#elif defined(__clang__)
+    t.S = mktime(ptm);
 #else
     t.S = timegm(ptm);
 #endif
@@ -895,6 +898,8 @@ tm* GetGmtTime(const ImPlotTime& t, tm* ptm)
     return ptm;
   else
     return NULL;
+#elif defined(__clang__)
+    return gmtime(&t.S);
 #else
   return gmtime_r(&t.S, ptm);
 #endif
@@ -914,6 +919,8 @@ tm* GetLocTime(const ImPlotTime& t, tm* ptm) {
     return ptm;
   else
     return NULL;
+#elif defined(__clang__)
+    return localtime(&t.S);
 #else
     return localtime_r(&t.S, ptm);
 #endif

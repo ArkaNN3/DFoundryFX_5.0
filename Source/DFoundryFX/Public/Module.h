@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Modules/ModuleManager.h"
-#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInterface.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Thread.h"
 
@@ -12,11 +12,11 @@ DECLARE_STATS_GROUP(TEXT("DFoundryFX"), STATGROUP_DFoundryFX, STATCAT_Advanced);
 class DFOUNDRYFX_API FDFX_Module : public IModuleInterface
 {
 public:
-  static inline FDFX_Module& Get()
+  static FDFX_Module& Get()
   {
     return FModuleManager::LoadModuleChecked<FDFX_Module>("DFoundryFX");
   }
-  static inline bool IsAvailable()
+  static bool IsAvailable()
   {
     return FModuleManager::Get().IsModuleLoaded("DFoundryFX");
   }

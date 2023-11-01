@@ -1,4 +1,8 @@
 #include "Module.h"
+#include "Thread.h"
+#include "StatData.h"
+#include "UObject/UObjectGlobals.h"
+#include "Materials/MaterialInterface.h"
 
 DEFINE_LOG_CATEGORY(LogDFoundryFX);
 #define LOCTEXT_NAMESPACE "DFX_Module"
@@ -31,7 +35,7 @@ void FDFX_Module::StartupModule()
 //FDFX_StatData 
   // TODO: Output "STAT HELP to FString"(?) instead of this huge STATList
   // Load STAT Commands
-  FString STATList = "Accessibility,AI,AI_EQS,AIBehaviorTree,AICrowd,Anim,AnimationSharing,ARComponent,AsyncIO,AsyncLoad,AsyncLoadGameThread,Audio,AudioMixer,AudioThreadCommands,"
+  const FString StatList = "Accessibility,AI,AI_EQS,AIBehaviorTree,AICrowd,Anim,AnimationSharing,ARComponent,AsyncIO,AsyncLoad,AsyncLoadGameThread,Audio,AudioMixer,AudioThreadCommands,"
     "BackChannel,BeamParticles,CableComponent,CameraAnimation,Canvas,Chaos,ChaosCloth,ChaosCollision,ChaosCollisionCounters,ChaosConstraintDetails,ChaosCounters,"
     "ChaosDedicated,ChaosEngine,ChaosJoint,ChaosMinEvolution,ChaosNiagara,ChaosThread,ChaosUserDataPT,ChaosWide,Character,Collision,CollisionTags,"
     "CollisionVerbose,ColorList,CommandListMarkers,Component,Compression,ControlRig,Cooking,CPULoad,CPUStalls,D3D11RHI,D3D12BufferDetails,D3D12DescriptorHeap,D3D12Memory,"
@@ -48,7 +52,7 @@ void FDFX_Module::StartupModule()
     "StreamingDetails,StreamingOverview,Summary,TargetPlatform,TaskGraphTasks,Text,TextureGroup,TexturePool,Threading,ThreadPoolAsyncTasks,Threads,"
     "Tickables,TickGroups,Timecode,Trace,TrailParticles,UI,Unit,UnitGraph,UnitMax,UnitTime,UObjectHash,UObjects,VectorVM,VectorVMBackend,VerboseNamedEvents,"
     "Version,VideoRecordingSystem,VirtualTextureMemory,VirtualTexturing,Voice,VTP,Xmpp";
-  FDFX_StatData::LoadSTAT(FDFX_StatData::None, STATList);
+  FDFX_StatData::LoadSTAT(FDFX_StatData::None, StatList);
   FDFX_StatData::LoadSTAT(FDFX_StatData::Common, "FPS,Unit,UnitGraph");
   FDFX_StatData::LoadSTAT(FDFX_StatData::Perf, "Engine,Game,GPU,RHI,InitViews,SceneRendering,Memory,MemoryPlatform,Shaders,ShaderCompiling,UI,Slate,Niagara,DrawCount,Tickables,TickGroups");
 
@@ -57,17 +61,20 @@ void FDFX_Module::StartupModule()
   // FDFX_StatData::LoadCVAR();
 
   // Keep the Material and Texture loaded independent from FDFXThread
-  MasterMaterial = LoadObject<UMaterialInterface>(NULL, TEXT("Material'/DFoundryFX/M_ImGui.Material'"), NULL, LOAD_None, NULL);
+  MasterMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/DFoundryFX/M_ImGui.M_ImGui'"));
   if (MasterMaterial) {
-    MaterialInstance = UMaterialInstanceDynamic::Create(MasterMaterial, NULL);
+    MaterialInstance = UMaterialInstanceDynamic::Create(MasterMaterial, nullptr);
     MaterialInstance->AllocatePermutationResource();
     MaterialInstance->ClearParameterValues();
   }
   FontTexture = UTexture2D::CreateTransient(512, 64, PF_R8G8B8A8);
 
-  MasterMaterial->AddToRoot();
-  MaterialInstance->AddToRoot();
-  FontTexture->AddToRoot();
+  if (MasterMaterial && MaterialInstance && FontTexture)
+  {
+    MasterMaterial->AddToRoot();
+    MaterialInstance->AddToRoot();
+    FontTexture->AddToRoot();
+  }
 
   //FDFX_Thread
   if (!FPlatformProcess::SupportsMultithreading()) {
